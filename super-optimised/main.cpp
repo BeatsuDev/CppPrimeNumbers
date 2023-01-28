@@ -2,13 +2,14 @@
 #include <stdio.h>
 #include <vector>
 #include <chrono>
-#include <cmath>
 
 using namespace std::chrono;
 using namespace std;
 
-vector<long> find_primes_up_to(long cutoff);
 
+// NOT FINISHED AT ALL - Still playing around with this one
+
+vector<long> find_primes_up_to(long cutoff);
 int main() {
     long N = 10'000'000;
 
