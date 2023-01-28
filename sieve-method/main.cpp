@@ -5,7 +5,7 @@
 #include <cmath>
 
 using namespace std::chrono;
-using namespace::std;
+using namespace std;
 
 vector<long> find_primes_up_to(long cutoff);
 

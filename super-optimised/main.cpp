@@ -27,10 +27,10 @@ vector<long> find_primes_up_to(long cutoff) {
     boolean_sieve[0] = false;
     boolean_sieve[1] = false;
 
-    for (long i = 2; i <= cutoff; i++) {
+    for (long i = 2; i * i <= cutoff; i++) {
         if (!boolean_sieve[i]) continue;
 
-        for (long future_index = i*i; future_index <= cutoff; future_index += i) {
+        for (long future_index = i * i; future_index <= cutoff; future_index += i) {
             boolean_sieve[future_index] = false;
         }
     }
@@ -38,7 +38,7 @@ vector<long> find_primes_up_to(long cutoff) {
     // Convert from indices to numbers
     vector<long> primes = vector<long>();
 
-    for (long i = 0; i <= cutoff; i++) {
+    for (long i = 0; i < boolean_sieve.size(); i++) {
         if (boolean_sieve[i]) {
             primes.push_back(i);
         }
