@@ -2,11 +2,15 @@
 #include <stdio.h>
 #include <vector>
 #include <chrono>
+#include <thread>
+#include <cmath>
+#include <algorithm>
 
 using namespace std::chrono;
 using namespace std;
 
 vector<int> find_primes_up_to(int n);
+void mark_segment(int start, vector<bool>& segment);
 
 int main() {
     int N = 100'000'000;
@@ -22,30 +26,47 @@ int main() {
 
 vector<int> find_primes_up_to(int n) {
     int cutoff = n / 2;
+    vector<thread> threads;
     vector<vector<bool>> segments;
 
     // Divide into segments of max 256KB worth of data (making it cache friendly)
-    int BLOCK_SIZE = 256 * 1000; // Not sure if it's 1000 or 1024. Keeping it at 1000 just to be on the safe side.
-    for () {
-
+    int BLOCK_SIZE = 256 * 1000 * 8; // Not sure if it's 1000 or 1024. Keeping it at 1000 just to be on the safe side.
+    for (int start_range = 0; start_range < cutoff; start_range += BLOCK_SIZE) {
+        vector<bool> segment(min(BLOCK_SIZE, cutoff - start_range), true);
+        segments.push_back(segment);
+        
+        thread t(mark_segment, start_range, &segment);
+        threads.push_back(t);
     }
 
-    // Create a thread for each segment (does threading preserve locality of reference?)
-
-
-    segments.push_back(segment);
-    vector<bool> marks(n + 1, true);
-    for (int i = 1; 2*i + 2*i*i <= cutoff; i++) {
-        for (int j = i; i + j + 2*i*j <= cutoff; j++) {
-            marks[i+j+2*i*j] = false;
-        }
+    for (unsigned int i = 0; i < threads.size(); i++) {
+        threads.at(i).join();
     }
 
     vector<int> primes;
-    for (int i = 0; i <= marks.size(); i++) {
-        if (2 * i + 1 > marks.size()) break;
-        if (marks[i])
-            primes.push_back(2 * i + 1);
+    int counting_index = 0;
+    
+    for (vector<bool> segment : segments) {
+        for (int i = 0; i < segment.size(); i++) {
+            if (!segment[i]) continue;
+            primes.push_back(2 * (1 + counting_index++) + 1);
+        }
     }
     return primes;
+}
+
+// Set all the numbers in an interval that will not be used in the last step to false
+void mark_segment(int start, vector<bool>& segment) {
+    int segment_end = start + segment.size();
+
+    // 2i^2 + 2i - s = 0
+    // a = 2, b = 2, c = start
+    // Use quadratic formula to find necessary starting i value
+    int start_i = (-2 + sqrt(4 + 8*start)) / 4;
+
+    for (int i = start_i; 2*i + 2*i*i <= segment_end; i++) {
+        for (int j = i; i + j + 2*i*j <= segment_end; j++) {
+            segment[-start + i+j+2*i*j] = false;
+        }
+    }
 }
