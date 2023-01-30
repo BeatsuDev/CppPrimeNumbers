@@ -2,19 +2,23 @@
 #include <stdio.h>
 #include <vector>
 #include <chrono>
-#include <thread>
 #include <cmath>
 #include <algorithm>
+#include <string>
+#include <thread>
 
 using namespace std::chrono;
 using namespace std;
 
 vector<int> find_primes_up_to(int n);
-void mark_segment(int start, vector<bool>& segment);
+void mark_segment(int segment_start, vector<bool> &segment);
+
+
+int BLOCK_SIZE = 256 * 1000 * 8;
+int N = 1'000'000'000;
+
 
 int main() {
-    int N = 100'000'000;
-
     auto start = high_resolution_clock::now();
     vector<int> found_primes = find_primes_up_to(N);
     auto stop = high_resolution_clock::now();
@@ -26,21 +30,25 @@ int main() {
 
 vector<int> find_primes_up_to(int n) {
     int cutoff = n / 2;
-    vector<thread> threads;
-    vector<vector<bool>> segments;
+    int segment_count = cutoff / BLOCK_SIZE + 1;
 
-    // Divide into segments of max 256KB worth of data (making it cache friendly)
-    int BLOCK_SIZE = 256 * 1000 * 8; // Not sure if it's 1000 or 1024. Keeping it at 1000 just to be on the safe side.
-    for (int start_range = 0; start_range < cutoff; start_range += BLOCK_SIZE) {
-        vector<bool> segment(min(BLOCK_SIZE, cutoff - start_range), true);
-        segments.push_back(segment);
-        
-        thread t(mark_segment, start_range, &segment);
-        threads.push_back(t);
+
+    vector<bool> segments[segment_count];
+    for (int i = 0; i < segment_count; i++) {
+        vector<bool> segment(min(BLOCK_SIZE, cutoff - i * BLOCK_SIZE), true);
+        segments[i] = segment;
+    }
+    
+    // Create threads for marking each segment
+    thread segment_threads[segment_count];
+    for (int s = 0; s < segment_count; s++) {
+        // mark_segment(s, segments[s]);
+        segment_threads[s] = thread(mark_segment, s, ref(segments[s]));
     }
 
-    for (unsigned int i = 0; i < threads.size(); i++) {
-        threads.at(i).join();
+    // Join the threads
+    for (int i = 0; i < segment_count; i++) {
+        segment_threads[i].join();
     }
 
     vector<int> primes;
@@ -48,25 +56,23 @@ vector<int> find_primes_up_to(int n) {
     
     for (vector<bool> segment : segments) {
         for (int i = 0; i < segment.size(); i++) {
+            int index = counting_index++;
             if (!segment[i]) continue;
-            primes.push_back(2 * (1 + counting_index++) + 1);
+            primes.push_back(2 * (1 + index) + 1);
         }
     }
     return primes;
 }
 
 // Set all the numbers in an interval that will not be used in the last step to false
-void mark_segment(int start, vector<bool>& segment) {
-    int segment_end = start + segment.size();
-
-    // 2i^2 + 2i - s = 0
-    // a = 2, b = 2, c = start
-    // Use quadratic formula to find necessary starting i value
-    int start_i = (-2 + sqrt(4 + 8*start)) / 4;
-
-    for (int i = start_i; 2*i + 2*i*i <= segment_end; i++) {
-        for (int j = i; i + j + 2*i*j <= segment_end; j++) {
-            segment[-start + i+j+2*i*j] = false;
+void mark_segment(int s, vector<bool> &segment) {
+    for (int i = 1; 2*i + 2*i*i < (s+1) * BLOCK_SIZE; i++) {
+        // Make j start at the value which makes i+j+2*i*j the value of the start of the segment
+        // e.g. if the segment starts at 256, j should be 85, because 1 + 85 + 2 * 1 * 85 = 256
+        for (int j = max(i, (s * BLOCK_SIZE - i) / (1 + 2 * i)); i + j + 2*i*j < (s+1)*BLOCK_SIZE; j++) {
+            if (i+j+2*i*j < s*BLOCK_SIZE || i+j+2*i*j >= (s+1)*BLOCK_SIZE) continue;
+            if (-(s*BLOCK_SIZE) + i+j+2*i*j >= segment.size()) continue;
+            segment[-(s*BLOCK_SIZE) + i+j+2*i*j] = false;
         }
     }
 }

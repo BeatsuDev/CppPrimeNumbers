@@ -10,7 +10,7 @@ using namespace std;
 vector<long> find_primes_up_to(long cutoff);
 
 int main() {
-    long N = 10'000'000;
+    long N = 100'000'000;
 
     auto start = high_resolution_clock::now();
     vector<long> found_primes = find_primes_up_to(N);
