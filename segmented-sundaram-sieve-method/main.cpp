@@ -14,8 +14,8 @@ vector<int> find_primes_up_to(int n);
 void mark_segment(int segment_start, vector<bool> &segment);
 
 
+int N = 10'000'000;
 int BLOCK_SIZE = 256 * 1000 * 8;
-int N = 1'000'000'000;
 
 
 int main() {
